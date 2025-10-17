@@ -32,7 +32,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  title: 'RSA-workshop',
+  title: 'QRcode-destroyer',
   showNavigation: true
 })
 </script>
