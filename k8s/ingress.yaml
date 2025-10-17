@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: QRcode-destroyer-ingress
+spec:
+  ingressClassName: public
+  rules:
+    - host: www.chrom.jp
+      http:
+        paths:
+          - path: /works/QRcode-destroyer
+            pathType: Prefix
+            backend:
+              service:
+                name: QRcode-destroyer-service
+                port:
+                  number: 8080
+  tls:
+    - hosts:
+        - www.chrom.jp
+      secretName: QRcode-destroyer-secret
