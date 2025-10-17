@@ -8,6 +8,10 @@
 				<button @click="generate">Generate (random text)</button>
 				<button @click="reset">Reset</button>
 			</div>
+			<div class="status">
+				<p>Generated: <strong>{{ text }}</strong></p>
+				<p>Decoded: <strong>{{ decoded }}</strong></p>
+			</div>
 		<div class="canvas-wrap" ref="wrapRef">
 			<canvas ref="canvasRef" @click="handleClick"></canvas>
 		</div>
@@ -21,6 +25,21 @@ const n = ref<number>(21)
 const matrix = ref<boolean[][]>([])
 const textList = ['hello', 'good', 'qrcode']
 const text = ref<string>(textList[0])
+const decoded = ref<string>('')
+
+// dynamic import for jsqr
+let jsqrLib: any = null
+async function ensureJsqr() {
+	if (jsqrLib) return jsqrLib
+	try {
+		jsqrLib = (await import('jsqr'))
+		return jsqrLib
+	} catch (err) {
+		console.warn('jsqr not installed', err)
+		jsqrLib = null
+		return null
+	}
+}
 
 let qrcodeLib: any = null
 
@@ -171,6 +190,38 @@ async function generate() {
 	}
 
 	nextTick(() => draw())
+
+	// after draw, attempt to decode
+	nextTick(async () => {
+		await decodeCanvas()
+	})
+}
+
+async function decodeCanvas() {
+	const lib = await ensureJsqr()
+	if (!lib) {
+		decoded.value = 'jsqr not available'
+		return
+	}
+	const canvas = canvasRef.value
+	if (!canvas) return
+	const rect = canvas.getBoundingClientRect()
+
+	const width = Math.round(rect.width)
+	const height = Math.round(rect.height)
+	const off = document.createElement('canvas')
+	off.width = width
+	off.height = height
+	const offCtx = off.getContext('2d')
+	if (!offCtx) return
+	offCtx.drawImage(canvas, 0, 0, width, height)
+	const imageData = offCtx.getImageData(0, 0, width, height)
+
+	// jsQR usage: jsQR(data, width, height)
+	const fn = lib.default || lib
+	const result = fn(imageData.data, width, height)
+	if (result && result.data) decoded.value = result.data
+	else decoded.value = 'not detected'
 }
 
 // expose programmatic API
