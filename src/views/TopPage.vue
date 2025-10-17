@@ -254,6 +254,18 @@ watch(n, (nv, ov) => {
 	initMatrix()
 	nextTick(() => fitCanvasSquare())
 })
+
+watch(
+	matrix,
+	async () => {
+		await nextTick()
+		try {
+			await decodeCanvas()
+		} catch (e) {
+		}
+	},
+	{ deep: true }
+)
 </script>
 
 <style scoped>
