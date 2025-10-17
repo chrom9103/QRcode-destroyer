@@ -1,8 +1,17 @@
 <template>
 	<div class="top-page">
-		<div class="controls">
-			<button @click="reset">Reset</button>
-		</div>
+			<div class="controls">
+				<label>
+					Text:
+					<input v-model="text" placeholder="Enter text to encode" />
+				</label>
+				<label>
+					n:
+					<input type="number" v-model.number="n" min="1" />
+				</label>
+				<button @click="generate">Generate</button>
+				<button @click="reset">Reset</button>
+			</div>
 		<div class="canvas-wrap" ref="wrapRef">
 			<canvas ref="canvasRef" @click="handleClick"></canvas>
 		</div>
@@ -14,6 +23,21 @@ import { ref, onMounted, watch, nextTick, onBeforeUnmount, defineExpose } from '
 
 const n = ref<number>(21)
 const matrix = ref<boolean[][]>([])
+const text = ref<string>('Hello, QR!')
+
+let qrcodeLib: any = null
+
+async function ensureQRCodeLib() {
+	if (qrcodeLib) return qrcodeLib
+	try {
+		qrcodeLib = (await import('qrcode-generator'))
+		return qrcodeLib
+	} catch (err) {
+		console.warn('qrcode-generator not installed; generate() will be unavailable', err)
+		qrcodeLib = null
+		return null
+	}
+}
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const wrapRef = ref<HTMLElement | null>(null)
 
@@ -116,6 +140,38 @@ function setCell(x: number, y: number, value: boolean) {
 function reset() {
 	initMatrix()
 	draw()
+}
+
+// Generate QR code
+async function generate() {
+	const lib = await ensureQRCodeLib()
+	if (!lib) {
+		alert('qrcode-generator is not installed. Run `npm install qrcode-generator` to enable generation.')
+		return
+	}
+
+	let QRCodeClass: any = lib
+	if (lib.default) QRCodeClass = lib.default
+
+	// qrcode-generator API: QRCode(typeNumber, errorCorrectionLevel)
+	const qr = QRCodeClass(0, 'L')
+	qr.addData(text.value)
+	qr.make()
+
+	const moduleCount = qr.getModuleCount()
+
+	n.value = moduleCount
+	matrix.value = Array.from({ length: moduleCount }, () => Array.from({ length: moduleCount }, () => false))
+
+	for (let y = 0; y < moduleCount; y++) {
+		for (let x = 0; x < moduleCount; x++) {
+			const dark = qr.isDark(y, x)
+			if (typeof dark === 'boolean') matrix.value[y][x] = dark
+			else matrix.value[y][x] = !!qr.isDark(x, y)
+		}
+	}
+
+	nextTick(() => draw())
 }
 
 // expose programmatic API
