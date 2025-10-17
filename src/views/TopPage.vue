@@ -2,14 +2,10 @@
 	<div class="top-page">
 			<div class="controls">
 				<label>
-					Text:
-					<input v-model="text" placeholder="Enter text to encode" />
-				</label>
-				<label>
 					n:
 					<input type="number" v-model.number="n" min="1" />
 				</label>
-				<button @click="generate">Generate</button>
+				<button @click="generate">Generate (random text)</button>
 				<button @click="reset">Reset</button>
 			</div>
 		<div class="canvas-wrap" ref="wrapRef">
@@ -23,7 +19,8 @@ import { ref, onMounted, watch, nextTick, onBeforeUnmount, defineExpose } from '
 
 const n = ref<number>(21)
 const matrix = ref<boolean[][]>([])
-const text = ref<string>('Hello, QR!')
+const textList = ['hello', 'good', 'qrcode']
+const text = ref<string>(textList[0])
 
 let qrcodeLib: any = null
 
@@ -144,11 +141,13 @@ function reset() {
 
 // Generate QR code
 async function generate() {
-	const lib = await ensureQRCodeLib()
+		const lib = await ensureQRCodeLib()
 	if (!lib) {
 		alert('qrcode-generator is not installed. Run `npm install qrcode-generator` to enable generation.')
 		return
 	}
+
+	text.value = textList[Math.floor(Math.random() * textList.length)]
 
 	let QRCodeClass: any = lib
 	if (lib.default) QRCodeClass = lib.default
